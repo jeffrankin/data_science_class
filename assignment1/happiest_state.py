@@ -1,37 +1,44 @@
 import sys
 import json
 
-tweet_terms = {}
-total_terms = 0
+state_scores = {}
+sentiment_data = {}
+
+
+def loadSentiments(fp):
+    for sentiment in fp.readlines():
+        sent, score = sentiment.strip().split("\t")
+        sentiment_data[sent] = float(score)
+
 
 def loadTweets(fp):
-    global total_terms
     for line in fp:
         tweet = json.loads(line)
+        score = 0
         if tweet.get('place'):
             if tweet.get('place').get('country_code') == 'US':
-                fname = tweet.get('place').get('full_name').split();
-                # print tweet.get('place').get('full_name')
+                fname = tweet.get('place').get('full_name').split()
                 state = fname[len(fname) - 1]
-                print state
-        # if tweet.get('user'):
-        #     if tweet.get('user').get('location'):
-        #         print tweet.get('user').get('location')
-        # clean data before
-        if tweet.get('text'):
-            ttext = tweet.get('text').encode('utf-8').split()
-            for i in range(len(ttext)):
-                total_terms += 1
-                if ttext[i] not in tweet_terms:
-                    tweet_terms[ttext[i]] = 0
-                tweet_terms[ttext[i]] += 1
+                if tweet.get('text'):
+                    ttext = tweet.get('text').encode('utf-8').split()
+                    for i in range(len(ttext)):
+                        if ttext[i] in sentiment_data:
+                            score += score + sentiment_data[ttext[i]]
+                if state not in state_scores:
+                    state_scores[state] = 0
+                state_scores[state] += score
+
 
 def main():
-    tweet_file = open(sys.argv[1])
+    sentiment_file = open(sys.argv[1])
+    tweet_file = open(sys.argv[2])
+    loadSentiments(sentiment_file)
     loadTweets(tweet_file)
-    for key in tweet_terms:
-        format = "%s %f" % (key, tweet_terms[key] / float(total_terms))
-#        print format
+
+    # find the state with the largest score
+    v = list(state_scores.values())
+    k = list(state_scores.keys())
+    print k[v.index(max(v))]
 
 if __name__ == '__main__':
     main()
